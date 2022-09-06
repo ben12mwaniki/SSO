@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import AuthService from "../services/service";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 
 function Login(props) {
   const formSchema = Yup.object().shape({
@@ -21,28 +21,49 @@ function Login(props) {
   const setUser = props.setUser;
 
   async function onSubmit(data) {
+    setMsg("");
     var loginResponse = await AuthService.login(data);
+    console.log(loginResponse);
 
+    if (typeof loginResponse === "string") {
+      setUser(null);
+      setMsg(loginResponse);
+    }
     if (loginResponse.error) {
-      setUser(false);
+      setUser(null);
       setMsg(loginResponse.error);
-    } else {
+    }
+    if (loginResponse.message) {
       if (redirect === "" || redirect == null) {
-        //window.location.replace("https://www.google.com/");
         if (loginResponse.message === "User not registered!") {
-          const username = loginResponse.username;
-          console.log(username);
-          setUser(true);
-          navigate(`/create_profile`, { state: { username: username } });
+          const user = {
+            username: loginResponse.username,
+            userType: loginResponse.userType,
+          };
+          setUser(user);
+          navigate(`/create_profile`, {
+            state: { user },
+          });
         } else {
-          const username = loginResponse.username;
-          setUser(true);
-          navigate(`/profile/${username}`, {
-            state: { userType: loginResponse.userType },
+          const user = {
+            username: loginResponse.username,
+            userType: loginResponse.userType,
+          };
+          setUser(user);
+          // default URL needed here
+          //window.location.replace("https://www.google.com/"); //-> example of navigation to a default URL
+
+          // navigation to profile used for testing modify profile, modify password etc
+          navigate(`/profile/${user.username}`, {
+            state: { user },
           });
         }
       } else {
-        setUser(true);
+        const user = {
+          username: loginResponse.username,
+          userType: loginResponse.userType,
+        };
+        setUser(user);
         window.location.replace(redirect);
       }
     }
@@ -84,15 +105,7 @@ function Login(props) {
           </button>
         </div>
         <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => {
-              navigate("/resetpwd_link");
-            }}
-            className="btn btn-primary"
-          >
-            Forgot Password
-          </button>
+          <Link to="/resetpwd_link">Forgot Password?</Link>
         </div>
       </form>
     </div>
