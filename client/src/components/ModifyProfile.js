@@ -1,27 +1,41 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useLocation } from "react-router-dom";
 import * as Yup from "yup";
 import AuthService from "../services/service";
+import axios from "axios";
 
 function ModifyProfile() {
   const userType = useLocation().state.userType;
-  const username = useLocation().state.username;
-  console.log(userType);
+  var redirect = new URLSearchParams(useLocation().search).get("redirect");
 
   if (userType === "Doctor") {
-    return <DoctorProfile username={username} />;
+    return <DoctorProfile redirect={redirect} />;
   }
   if (userType === "Patient") {
-    return <PatientProfile username={username} />;
+    return <PatientProfile redirect={redirect} />;
   }
   if (userType === "Group") {
-    return <GroupProfile username={username} />;
+    return <GroupProfile redirect={redirect} />;
   }
 }
 
 function PatientProfile(props) {
+  const [user, setUser] = useState();
+
+  useEffect(() => {
+    axios
+      .get("api/user")
+      .then((res) => {
+        setUser(res.data);
+      })
+      .catch((err) => {
+        console.log(err);
+        setMsg(err.res.data.error);
+      });
+  }, []);
+
   const formSchema = Yup.object().shape({
     firstName: Yup.string(),
     lastName: Yup.string(),
@@ -50,19 +64,20 @@ function PatientProfile(props) {
   const { register, handleSubmit, formState } = useForm(formOptions);
   const { errors } = formState;
   const [msg, setMsg] = useState("");
-  var redirect = new URLSearchParams(useLocation().search).get("redirect");
 
   async function onSubmit(data) {
-    data.username = props.username;
+    setMsg("");
     const res = await AuthService.modifyProfile(data);
     if (res.error) {
       console.log(res.error);
       setMsg(res.error);
     } else {
-      if (redirect === "" || redirect === null) {
+      if (props.redirect === "" || props.redirect === null) {
+        setMsg(res.message);
         setMsg(res.message);
       } else {
-        window.location.replace(redirect);
+        setMsg(res.message);
+        window.location.replace(props.redirect);
       }
     }
   }
@@ -77,6 +92,7 @@ function PatientProfile(props) {
           <input
             name="firstName"
             type="text"
+            defaultValue={user ? user.firstName : ""}
             {...register("firstName")}
             className={`form-control ${errors.firstName ? "is-invalid" : ""}`}
           />
@@ -87,6 +103,7 @@ function PatientProfile(props) {
           <input
             name="lastName"
             type="text"
+            defaultValue={user ? user.lastName : ""}
             {...register("lastName")}
             className={`form-control ${errors.lastName ? "is-invalid" : ""}`}
           />
@@ -98,6 +115,7 @@ function PatientProfile(props) {
           <input
             name="address_unit"
             type="text"
+            defaultValue={user ? user.address.unit : ""}
             {...register("address_unit")}
             className={`form-control ${
               errors.address_unit ? "is-invalid" : ""
@@ -110,6 +128,7 @@ function PatientProfile(props) {
           <input
             name="address_street"
             type="text"
+            defaultValue={user ? user.address.street : ""}
             {...register("address_street")}
             className={`form-control ${
               errors.address_street ? "is-invalid" : ""
@@ -124,6 +143,7 @@ function PatientProfile(props) {
           <input
             name="address_country"
             type="text"
+            defaultValue={user ? user.address.country : ""}
             {...register("address_country")}
             className={`form-control ${
               errors.address_country ? "is-invalid" : ""
@@ -138,6 +158,7 @@ function PatientProfile(props) {
           <input
             name="address_postal"
             type="text"
+            defaultValue={user ? user.address.postal : ""}
             {...register("address_postal")}
             className={`form-control ${
               errors.address_postal ? "is-invalid" : ""
@@ -152,6 +173,7 @@ function PatientProfile(props) {
           <input
             name="phone"
             type="text"
+            defaultValue={user ? user.phone : ""}
             {...register("phone")}
             className={`form-control ${errors.phone ? "is-invalid" : ""}`}
           />
@@ -166,6 +188,7 @@ function PatientProfile(props) {
           <input
             name="healthInsurance_number"
             type="text"
+            defaultValue={user ? user.healthInsurance.number : ""}
             {...register("healthInsurance_number")}
             className={`form-control ${
               errors.healthInsurance_number ? "is-invalid" : ""
@@ -180,6 +203,7 @@ function PatientProfile(props) {
           <input
             name="healthInsurance_expiryMonth"
             type="text"
+            defaultValue={user ? user.healthInsurance.expiryMonth : ""}
             {...register("healthInsurance_expiryMonth")}
             className={`form-control ${
               errors.healthInsurance_expiryMonth ? "is-invalid" : ""
@@ -194,6 +218,7 @@ function PatientProfile(props) {
           <input
             name="healthInsurance_expiryYear"
             type="text"
+            defaultValue={user ? user.healthInsurance.expiryYear : ""}
             {...register("healthInsurance_expiryYear")}
             className={`form-control ${
               errors.healthInsurance_expiryYear ? "is-invalid" : ""
@@ -208,6 +233,7 @@ function PatientProfile(props) {
           <input
             name="alternatePhone"
             type="text"
+            defaultValue={user ? user.alternatePhone : ""}
             {...register("alternatePhone")}
             className={`form-control ${
               errors.alternatePhone ? "is-invalid" : ""
@@ -231,6 +257,20 @@ function PatientProfile(props) {
 }
 
 function DoctorProfile(props) {
+  const [user, setUser] = useState();
+
+  useEffect(() => {
+    axios
+      .get("api/user")
+      .then((res) => {
+        setUser(res.data);
+      })
+      .catch((err) => {
+        console.log(err);
+        setMsg(err.res.data.error);
+      });
+  }, []);
+
   const formSchema = Yup.object().shape({
     firstName: Yup.string(),
     lastName: Yup.string(),
@@ -256,13 +296,18 @@ function DoctorProfile(props) {
   const [msg, setMsg] = useState("");
 
   async function onSubmit(data) {
-    data.username = props.username;
+    setMsg("");
     const res = await AuthService.modifyProfile(data);
     if (res.error) {
       console.log(res.error);
       setMsg(res.error);
     } else {
-      setMsg(res.message);
+      if (props.redirect === "" || props.redirect === null) {
+        setMsg(res.message);
+      } else {
+        setMsg(res.message);
+        window.location.replace(props.redirect);
+      }
     }
   }
 
@@ -272,9 +317,11 @@ function DoctorProfile(props) {
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="form-group">
           <label>First Name</label>
+
           <input
             name="firstName"
             type="text"
+            defaultValue={user ? user.firstName : ""}
             {...register("firstName")}
             className={`form-control ${errors.firstName ? "is-invalid" : ""}`}
           />
@@ -285,6 +332,7 @@ function DoctorProfile(props) {
           <input
             name="lastName"
             type="text"
+            defaultValue={user ? user.lastName : ""}
             {...register("lastName")}
             className={`form-control ${errors.lastName ? "is-invalid" : ""}`}
           />
@@ -296,6 +344,7 @@ function DoctorProfile(props) {
           <input
             name="address_unit"
             type="text"
+            defaultValue={user ? user.address.unit : ""}
             {...register("address_unit")}
             className={`form-control ${
               errors.address_unit ? "is-invalid" : ""
@@ -308,6 +357,7 @@ function DoctorProfile(props) {
           <input
             name="address_street"
             type="text"
+            defaultValue={user ? user.address.street : ""}
             {...register("address_street")}
             className={`form-control ${
               errors.address_street ? "is-invalid" : ""
@@ -321,6 +371,7 @@ function DoctorProfile(props) {
           <label>Country</label>
           <input
             name="address_country"
+            defaultValue={user ? user.address.country : ""}
             type="text"
             {...register("address_country")}
             className={`form-control ${
@@ -336,6 +387,7 @@ function DoctorProfile(props) {
           <input
             name="address_postal"
             type="text"
+            defaultValue={user ? user.address.postal : ""}
             {...register("address_postal")}
             className={`form-control ${
               errors.address_postal ? "is-invalid" : ""
@@ -350,26 +402,27 @@ function DoctorProfile(props) {
           <input
             name="phone"
             type="text"
+            defaultValue={user ? user.phone : ""}
             {...register("phone")}
             className={`form-control ${errors.phone ? "is-invalid" : ""}`}
           />
           <div className="invalid-feedback">{errors.phone?.message}</div>
         </div>
 
-        {/**Doctor Specific */}
-
+        {/**Doctor Specific info */}
         <div className="form-group">
-          <label>Licence number (MLN) </label>
+          <label>License number (MLN) </label>
           <input
-            name="licenceNumber"
+            name="licenseNumber"
             type="text"
-            {...register("licenceNumber")}
+            defaultValue={user ? user.licenseNumber : ""}
+            {...register("licenseNumber")}
             className={`form-control ${
-              errors.licenceNumber ? "is-invalid" : ""
+              errors.licenseNumber ? "is-invalid" : ""
             }`}
           />
           <div className="invalid-feedback">
-            {errors.licenceNumber?.message}
+            {errors.licenseNumber?.message}
           </div>
         </div>
 
@@ -378,6 +431,7 @@ function DoctorProfile(props) {
           <input
             name="faxNumber"
             type="text"
+            defaultValue={user ? user.faxNumber : ""}
             {...register("faxNumber")}
             className={`form-control ${errors.faxNumber ? "is-invalid" : ""}`}
           />
@@ -397,6 +451,20 @@ function DoctorProfile(props) {
 }
 
 function GroupProfile(props) {
+  const [user, setUser] = useState();
+
+  useEffect(() => {
+    axios
+      .get("api/user")
+      .then((res) => {
+        setUser(res.data);
+      })
+      .catch((err) => {
+        console.log(err);
+        setMsg(err.res.data.error);
+      });
+  }, []);
+
   const formSchema = Yup.object().shape({
     firstName: Yup.string(),
     lastName: Yup.string(),
@@ -422,13 +490,17 @@ function GroupProfile(props) {
   const [msg, setMsg] = useState("");
 
   async function onSubmit(data) {
-    data.username = props.username;
     const res = await AuthService.modifyProfile(data);
     if (res.error) {
       console.log(res.error);
       setMsg(res.error);
     } else {
-      setMsg(res.message);
+      if (props.redirect === "" || props.redirect === null) {
+        setMsg(res.message);
+      } else {
+        setMsg(res.message);
+        window.location.replace(props.redirect);
+      }
     }
   }
 
@@ -441,6 +513,7 @@ function GroupProfile(props) {
           <input
             name="firstName"
             type="text"
+            defaultValue={user ? user.firstName : ""}
             {...register("firstName")}
             className={`form-control ${errors.firstName ? "is-invalid" : ""}`}
           />
@@ -451,6 +524,7 @@ function GroupProfile(props) {
           <input
             name="lastName"
             type="text"
+            defaultValue={user ? user.lastName : ""}
             {...register("lastName")}
             className={`form-control ${errors.lastName ? "is-invalid" : ""}`}
           />
@@ -461,6 +535,7 @@ function GroupProfile(props) {
           <input
             name="organizationName"
             type="text"
+            defaultValue={user ? user.organizationName : ""}
             {...register("organizationName")}
             className={`form-control ${
               errors.organizationName ? "is-invalid" : ""
@@ -476,6 +551,7 @@ function GroupProfile(props) {
           <input
             name="address_unit"
             type="text"
+            defaultValue={user ? user.address.unit : ""}
             {...register("address_unit")}
             className={`form-control ${
               errors.address_unit ? "is-invalid" : ""
@@ -488,6 +564,7 @@ function GroupProfile(props) {
           <input
             name="address_street"
             type="text"
+            defaultValue={user ? user.address.street : ""}
             {...register("address_street")}
             className={`form-control ${
               errors.address_street ? "is-invalid" : ""
@@ -502,6 +579,7 @@ function GroupProfile(props) {
           <input
             name="address_country"
             type="text"
+            defaultValue={user ? user.address.country : ""}
             {...register("address_country")}
             className={`form-control ${
               errors.address_country ? "is-invalid" : ""
@@ -516,6 +594,7 @@ function GroupProfile(props) {
           <input
             name="address_postal"
             type="text"
+            defaultValue={user ? user.address.postal : ""}
             {...register("address_postal")}
             className={`form-control ${
               errors.address_postal ? "is-invalid" : ""
@@ -530,6 +609,7 @@ function GroupProfile(props) {
           <input
             name="phone"
             type="text"
+            defaultValue={user ? user.phone : ""}
             {...register("phone")}
             className={`form-control ${errors.phone ? "is-invalid" : ""}`}
           />
@@ -540,6 +620,7 @@ function GroupProfile(props) {
           <input
             name="faxNumber"
             type="text"
+            defaultValue={user ? user.faxNumber : ""}
             {...register("faxNumber")}
             className={`form-control ${errors.faxNumber ? "is-invalid" : ""}`}
           />
