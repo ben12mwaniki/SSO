@@ -1,59 +1,57 @@
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as Yup from "yup";
-import AuthService from "../services/service";
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+
+//create apps
 
 function AdminDashboard() {
-  const formSchema = Yup.object().shape({
-    app_name: Yup.string().required("App name is required"),
-    webhook_URL: Yup.string().required("Field is required"),
-  });
-  const formOptions = { resolver: yupResolver(formSchema) };
-  const { register, handleSubmit, formState } = useForm(formOptions);
-  const { errors } = formState;
-  const [msg, setMsg] = useState("");
+  //Table body data
+  const [tbody, setTBody] = useState("");
+  useEffect(() => {
+    axios
+      .get("api/apps")
+      .then((res) => {
+        let data = "";
+        for (const v of res.data) {
+          if (v.appType === "type-2") {
+            data += ` <tr><td> ${v.appName}</td> <td></td> <td>${v.appType}</td> </tr>`;
+          } else {
+            data += ` <tr><td> ${v.appName}</td> <td>${v.webhookURL}</td> <td>${v.appType}</td> </tr>`;
+          }
+        }
 
-  async function onSubmit(data) {
-    setMsg("This dash is being tested");
-  }
+        setTBody(data);
+        console.log(tbody);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }, []);
 
   return (
     <div className="container mt-5">
-      <h2> App Registration</h2>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="form-group">
-          <label>App Name</label>
-          <input
-            name="app_name"
-            type="text"
-            {...register("app_name")}
-            className={`form-control ${errors.app_name ? "is-invalid" : ""}`}
-          />
-          <div className="invalid-feedback">{errors.app_name?.message}</div>
-        </div>
+      <h2>Registered Apps</h2>
+      <table id="appsTable" class="table table-hover">
+        <thead>
+          <tr>
+            <th scope="col">App name</th>
+            <th scope="col">webhookURL</th>
+            <th scope="col">App type</th>
+          </tr>
+        </thead>
 
-        <div className="form-group">
-          <label>Webhook URL</label>
-          <input
-            name="webhook_URL"
-            type="text"
-            {...register("webhook_URL")}
-            className={`form-control ${errors.webhook_URL ? "is-invalid" : ""}`}
-          />
-          <div className="invalid-feedback">{errors.webhook_URL?.message}</div>
-        </div>
+        <tbody id="appsTableBody"></tbody>
+      </table>
 
-        <span className="alert alert-primary" role="alert">
-          {msg}
-        </span>
+      {(() => {
+        let table = document.getElementById("appsTableBody");
+        if (table) {
+          console.log("found");
+          table.insertAdjacentHTML("beforeend", tbody);
+        }
+      })()}
 
-        <div className="mt-3">
-          <button type="submit" className="btn btn-primary">
-            Submit
-          </button>
-        </div>
-      </form>
+      <Link to="/admin_dashboard/app_reg">Register new app</Link>
     </div>
   );
 }

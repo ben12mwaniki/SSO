@@ -1,23 +1,20 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useLocation } from "react-router-dom";
 import AuthService from "../services/service";
 import * as Yup from "yup";
 
 function CreateProfile() {
-  const username = useLocation().state.username;
-  console.log(username);
   const [userType, setUserType] = useState("");
 
   if (userType === "Doctor") {
-    return <DoctorProfile username={username} />;
+    return <DoctorProfile />;
   }
   if (userType === "Patient") {
-    return <PatientProfile username={username} />;
+    return <PatientProfile />;
   }
   if (userType === "Group") {
-    return <GroupProfile username={username} />;
+    return <GroupProfile />;
   } else {
     return (
       <>
@@ -28,9 +25,7 @@ function CreateProfile() {
           name="userTypes"
           id="userTypes"
           onChange={() => {
-            var user = document.getElementById("userTypes").value;
-            setUserType(user);
-            console.log(user);
+            setUserType(document.getElementById("userTypes").value);
           }}
         >
           <option value=""> Select one</option>
@@ -43,7 +38,7 @@ function CreateProfile() {
   }
 }
 
-function PatientProfile(props) {
+function PatientProfile() {
   const formSchema = Yup.object().shape({
     firstName: Yup.string().required("First name is required"),
     lastName: Yup.string().required("Last name is required"),
@@ -77,10 +72,9 @@ function PatientProfile(props) {
   const { register, handleSubmit, formState } = useForm(formOptions);
   const { errors } = formState;
   const [msg, setMsg] = useState("");
-  const username = props.username;
 
   async function onSubmit(data) {
-    data.username = username;
+    setMsg("");
     data.userType = "Patient";
     var res = await AuthService.createProfile(data);
 
@@ -238,6 +232,7 @@ function PatientProfile(props) {
             {errors.alternatePhone?.message}
           </div>
         </div>
+        <br></br>
         <span className="alert alert-primary" role="alert">
           {msg}
         </span>
@@ -251,7 +246,7 @@ function PatientProfile(props) {
   );
 }
 
-function DoctorProfile(props) {
+function DoctorProfile() {
   const formSchema = Yup.object().shape({
     firstName: Yup.string().required("First name is required"),
     lastName: Yup.string().required("Last name is required"),
@@ -259,7 +254,7 @@ function DoctorProfile(props) {
       /^$|^[0-9]+$/,
       "The value must be a number"
     ),
-    address_street: Yup.string().required("Street name is required"),
+    address_street: Yup.string().required("Field is required"),
     address_country: Yup.string().required("Field is required"),
     address_postal: Yup.string().required("Field is required"),
     phone: Yup.string()
@@ -274,11 +269,10 @@ function DoctorProfile(props) {
   const formOptions = { resolver: yupResolver(formSchema) };
   const { register, handleSubmit, formState } = useForm(formOptions);
   const { errors } = formState;
-  const username = props.username;
   const [msg, setMsg] = useState("");
 
   async function onSubmit(data) {
-    data.username = username;
+    setMsg("");
     data.userType = "Doctor";
     var res = await AuthService.createProfile(data);
 
@@ -406,6 +400,7 @@ function DoctorProfile(props) {
           />
           <div className="invalid-feedback">{errors.faxNumber?.message}</div>
         </div>
+        <br></br>
         <span className="alert alert-primary" role="alert">
           {msg}
         </span>
@@ -419,7 +414,7 @@ function DoctorProfile(props) {
   );
 }
 
-function GroupProfile(props) {
+function GroupProfile() {
   const formSchema = Yup.object().shape({
     firstName: Yup.string().required("First name is required"),
     lastName: Yup.string().required("Last name is required"),
@@ -442,11 +437,10 @@ function GroupProfile(props) {
   const formOptions = { resolver: yupResolver(formSchema) };
   const { register, handleSubmit, formState } = useForm(formOptions);
   const { errors } = formState;
-  const username = props.username;
   const [msg, setMsg] = useState("");
 
   async function onSubmit(data) {
-    data.username = username;
+    setMsg("");
     data.userType = "Group";
     var res = await AuthService.createProfile(data);
     if (res.message) {
@@ -569,7 +563,7 @@ function GroupProfile(props) {
           />
           <div className="invalid-feedback">{errors.faxNumber?.message}</div>
         </div>
-
+        <br></br>
         <span className="alert alert-primary" role="alert">
           {msg}
         </span>
