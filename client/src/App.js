@@ -3,10 +3,8 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import Registration from "./components/Registration";
 import Login from "./components/Login";
 import AuthService from "./services/service";
-
 import UserProfile from "./components/UserProfile";
 import React, { useState, useEffect } from "react";
-
 import {
   BrowserRouter as Router,
   Route,
@@ -21,10 +19,10 @@ import SendPwdResetLink from "./components/SendPwdResetLink";
 import CreateProfile from "./components/CreateProfile";
 import ModifyProfile from "./components/ModifyProfile";
 import AdminDashboard from "./components/AdminDashboard";
+import AppRegistration from "./components/AppRegistration";
 
 function App() {
   const [user, setUser] = useState(null);
-
   return (
     <Router>
       <div className="App">
@@ -50,7 +48,21 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/registration" element={<Registration />} />
             <Route path="/login" element={<Login setUser={setUser} />} />
-            <Route path="/admin_dashboard" element={<AdminDashboard />} />
+
+            <Route
+              path="/admin_dashboard"
+              element={
+                <ProtectedRoute user={user} setUser={setUser}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin_dashboard/app_reg"
+              element={<AppRegistration />}
+            />
+
             <Route
               path="/profile/:username"
               element={
@@ -109,19 +121,32 @@ function ProtectedRoute(props) {
     if (!props.user) {
       authenticate();
     }
+
+    async function authenticate() {
+      var res = await AuthService.authenticate();
+
+      if (res.statusText === "OK") {
+        const user = {
+          username: res.data.username,
+          userType: res.data.userType,
+        };
+        props.setUser(user);
+      } else {
+        navigate("/login", { replace: true });
+      }
+    }
   });
 
-  async function authenticate() {
-    var res = await AuthService.authenticate();
-
-    if (res.data === "OK") {
-      props.setUser(true);
+  //Admin dash can only be viewed by admins i.e. Doctor
+  //Modify this to allow only doctors with isAdmin === true
+  if (props.children.type.name === "AdminDashboard") {
+    if (props.user && props.user.userType === "Doctor") {
+      return <div>{props.children}</div>;
     } else {
-      navigate("/login", { replace: true });
+      return <h2>Access denied</h2>;
     }
   }
-
-  return <div>{props.user === true && props.children}</div>;
+  return <div>{props.user && props.children}</div>;
 }
 
 export default App;
