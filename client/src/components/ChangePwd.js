@@ -24,11 +24,10 @@ function ChangePwd() {
   const { errors } = formState;
   const [mssg, setMsg] = useState("");
 
-  const username = useLocation().state.username;
   var redirect = new URLSearchParams(useLocation().search).get("redirect");
 
   async function onSubmit(data) {
-    data.username = username;
+    setMsg("");
     const response = await AuthService.changePassword(data);
     if (response.message) {
       if (redirect == null || redirect === "") {
