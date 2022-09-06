@@ -3,52 +3,10 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/user");
 var mailer = require("../services/mailer");
+var middleware = require("../middleware/middleware");
 var crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-
-const authorization = (req, res, next) => {
-  const token = req.cookies.jwt;
-  if (!token) {
-    return res.status(401).send({
-      error: "Action unauthorized. Please login first",
-    });
-  }
-  try {
-    const data = jwt.verify(token, process.env.USER_SECRET);
-    req.userId = data.id;
-    req.username = data.username;
-    return next();
-  } catch {
-    return res.status(403).send({ error: "Forbidden" });
-  }
-};
-
-//Check if user is logged in
-router.get("/authentication", authorization, (req, res) => {
-  return res.sendStatus(200);
-});
-
-//Ask user to validate their password
-router.post("/reauthentication", authorization, (req, res) => {
-  User.findOne({ _id: req.userId }, "password")
-    .then((user) => {
-      if (!user) {
-        return res.sendStatus(404);
-      } else {
-        user.comparePassword(req.body.password, function (err, isMatch) {
-          if (err) return res.sendStatus(500);
-          if (!isMatch) {
-            return res.sendStatus(401);
-          } else {
-            return res.sendStatus(200);
-          }
-        });
-      }
-    })
-    .catch(() => {
-      return res.sendStatus(404);
-    });
-});
+const App = require("../models/app");
 
 router.post("/registration", (req, res) => {
   if (req.body.username && req.body.email && req.body.password) {
@@ -62,6 +20,7 @@ router.post("/registration", (req, res) => {
 
             // Set expiration time to 24 hours.
             data.activationExpiry = Date.now() + 24 * 3600 * 1000;
+
             var link =
               "http://localhost:3000/activation/" + data.activationToken;
 
@@ -76,17 +35,15 @@ router.post("/registration", (req, res) => {
             });
 
             data.registered = false; //True after user creates a profile
-            // save user object
             data
               .save()
-              .then(
-                res.status(201).send({
-                  message:
-                    "The activation email has been sent to " +
-                    data.email +
-                    ", please click the activation link within 24 hours.",
-                })
-              )
+              .then(() => {
+                //send webhook to all type 1-PAs
+
+                return res.status(201).send({
+                  message: `The activation email has been sent to ${data.email}, please click the activation link within 24 hours.`,
+                });
+              })
               .catch((err) => {
                 return res.status(500).send({ error: err.message });
               });
@@ -99,6 +56,49 @@ router.post("/registration", (req, res) => {
       error: "An input field is empty",
     });
   }
+});
+
+router.get("/activation/:activationToken", (req, res) => {
+  User.findOne({
+    activationToken: req.params.activationToken,
+  })
+    .then((user) => {
+      if (!user) {
+        return res.status(404).send({
+          error: `Your activation link is invalid`,
+        });
+      }
+      if (user.activationExpiry < Date.now()) {
+        User.deleteOne({ _id: user._id })
+          .then(() => {
+            return res.status(403).send({
+              error: `Your activation link has expired. Please register again`,
+            });
+          })
+          .catch((err) => {
+            console.log(err);
+            return res.status(500).send({ error: err.message });
+          });
+      } else {
+        // activate and save
+        user.activated = true;
+        user.activationToken = undefined;
+        user.activationExpiry = undefined;
+        user
+          .save()
+          .then(() => {
+            return res.status(200).send({
+              message: "Account activation successful! Redirecting to login...",
+            });
+          })
+          .catch((err) => {
+            return res.status(500).send({ error: err.message });
+          });
+      }
+    })
+    .catch((err) => {
+      return res.status(500).send({ error: err.message });
+    });
 });
 
 router.post("/login", (req, res) => {
@@ -187,11 +187,9 @@ router.post("/pwdreset_link", (req, res) => {
           // Ensure the reset code is unique.
           data.resetToken = data._id + buf.toString("hex");
 
-          // Set expiration time to 1 hour.
           data.resetExpiry = Date.now() + 3600 * 1000;
           var link = "http://localhost:3000/reset_pwd/" + data.resetToken;
 
-          // Sending email with reset link
           mailer.send({
             to: req.body.email,
             subject: "Password Reset Link",
@@ -201,7 +199,6 @@ router.post("/pwdreset_link", (req, res) => {
               '"> here </a> to reset your password.',
           });
 
-          // save user object
           data
             .save()
             .then((data) => {
@@ -262,12 +259,12 @@ router.patch("/reset_pwd", async (req, res) => {
     });
 });
 
-router.patch("/change_pwd", authorization, async (req, res) => {
+router.patch("/change_pwd", middleware.authorization, async (req, res) => {
   if (!req.body.oldPwd || !req.body.newPwd) {
     return res.status(400).json({ error: "An input field is empty" });
   }
 
-  await User.findOne({ username: req.body.username }, "password")
+  User.findById(req.userId, "password")
     .then((data) => {
       if (!data) {
         return res.status(404).send({ error: "User not found" });
@@ -295,8 +292,8 @@ router.patch("/change_pwd", authorization, async (req, res) => {
     });
 });
 
-router.patch("/create_profile", authorization, (req, res) => {
-  User.findOne({ username: req.body.username }, "username registered userType")
+router.patch("/create_profile", middleware.authorization, (req, res) => {
+  User.findById(req.userId, "username registered userType")
     .then((user) => {
       if (!user) {
         return res.status(404).send({ error: "User not found" });
@@ -304,8 +301,9 @@ router.patch("/create_profile", authorization, (req, res) => {
       user.firstName = req.body.firstName;
       user.lastName = req.body.lastName;
       user.address.unit = req.body.address_unit;
-      user.address.street = req.body.adress_street;
+      user.address.street = req.body.address_street;
       user.address.postal = req.body.address_postal;
+      user.address.country = req.body.address_country;
       user.phone = req.body.phone;
       user.userType = req.body.userType;
 
@@ -328,6 +326,8 @@ router.patch("/create_profile", authorization, (req, res) => {
       user
         .save({ validateModifiedOnly: true })
         .then(() => {
+          middleware.updateWebhook(req.body);
+
           const token = jwt.sign(
             {
               username: user.username,
@@ -353,8 +353,8 @@ router.patch("/create_profile", authorization, (req, res) => {
     });
 });
 
-router.patch("/modify_profile", authorization, (req, res) => {
-  User.findOne({ username: req.body.username }, "userType")
+router.patch("/modify_profile", middleware.authorization, (req, res) => {
+  User.findById(req.userId, "userType")
     .then((user) => {
       if (!user) {
         return res.status(404).send({ error: "User not found" });
@@ -365,7 +365,7 @@ router.patch("/modify_profile", authorization, (req, res) => {
         user.firstName = req.body.firstName;
       }
       if (req.body.lastName !== "") {
-        user.lastName = req.body.firstName;
+        user.lastName = req.body.lastName;
       }
       if (req.body.address_unit !== "") {
         user.address.unit = req.body.address_unit;
@@ -380,7 +380,7 @@ router.patch("/modify_profile", authorization, (req, res) => {
         user.address.postal = req.body.address_postal;
       }
       if (req.body.phone !== "") {
-        user.address.phone = req.body.phone;
+        user.phone = req.body.phone;
       }
 
       //Modifying Patient Profile
@@ -421,6 +421,7 @@ router.patch("/modify_profile", authorization, (req, res) => {
       user
         .save()
         .then(() => {
+          middleware.updateWebhook(req.body);
           return res.status(200).send({
             message: "Profile updated successfully",
           });
@@ -436,28 +437,70 @@ router.patch("/modify_profile", authorization, (req, res) => {
     });
 });
 
-router.get("/activation/:activationToken", (req, res) => {
-  // find the corresponding user
-  User.findOne({
-    activationToken: req.params.activationToken,
-    // check if the expiry time > the current time
-    activationExpiry: { $gt: Date.now() },
-  })
+router.get("/logout", middleware.authorization, (req, res) => {
+  return res.clearCookie("jwt").status(200).json({ message: "Success!" });
+});
+//Check if user is logged in
+router.get("/authentication", middleware.authorization, (req, res) => {
+  return res.status(200).send({
+    username: req.username,
+    userType: req.userType,
+  });
+});
+
+//Ask user to validate their password
+router.post("/reauthentication", middleware.authorization, (req, res) => {
+  User.findOne({ _id: req.userId }, "password")
     .then((user) => {
       if (!user) {
-        return res.status(404).send({
-          error: `Your activation link is invalid`,
-        });
+        return res.sendStatus(404);
       } else {
-        // activate and save
-        user.activated = true;
-        user.activationToken = undefined;
-        user.activationExpiry = undefined;
-        user
+        user.comparePassword(req.body.password, function (err, isMatch) {
+          if (err) return res.sendStatus(500);
+          if (!isMatch) {
+            return res.sendStatus(401);
+          } else {
+            return res.sendStatus(200);
+          }
+        });
+      }
+    })
+    .catch(() => {
+      return res.sendStatus(404);
+    });
+});
+
+router.post("/app_registration", middleware.authorization, (req, res) => {
+  if (req.body.appType === "type-1" && !req.body.webhookURL) {
+    return res.status(400).send({ error: "WebhookURL is required" });
+  }
+  App.create(req.body)
+    .then((data) => {
+      if (data) {
+        const buf = crypto.randomBytes(64);
+        data.appSecret = buf.toString("hex");
+
+        data
           .save()
           .then(() => {
-            return res.status(200).send({
-              message: "Account activation successful! Redirecting to login...",
+            if (req.body.appType === "type-2") {
+              const token = jwt.sign(
+                {
+                  appId: data._id,
+                },
+                data.plainAppSecret,
+                { expiresIn: "24h" }
+              );
+
+              return res.status(200).json({
+                message: "App created successfully!",
+                token: token,
+              });
+            }
+
+            return res.status(200).json({
+              message: "App created successfully!",
+              appSecret: data.plainAppSecret,
             });
           })
           .catch((err) => {
@@ -466,31 +509,74 @@ router.get("/activation/:activationToken", (req, res) => {
       }
     })
     .catch((err) => {
+      //Add error 409 for resource with name already exists
       return res.status(500).send({ error: err.message });
     });
 });
 
-router.get("/logout", authorization, (req, res) => {
-  return res.clearCookie("jwt").status(200).json({ message: "Success!" });
+//To be used by type-2 app
+//Request info of user: userID
+router.get("/UserInfo", middleware.authorizeApp, (req, res) => {
+  User.findById(req.query.userId, { password: 0 })
+    .then((user) => {
+      if (!user) {
+        return res.status(404).send({ error: "User not found" });
+      }
+      return res.status(200).json(user);
+    })
+    .catch((err) => {
+      console.log(err);
+      return res.status(500).send({ error: err.message });
+    });
+});
+
+//Request info of logged in user
+router.get("/user", middleware.authorization, (req, res) => {
+  User.findById(req.userId, { password: 0 })
+    .then((user) => {
+      if (!user) {
+        return res.status(404).send({ error: "User not found" });
+      }
+      return res.status(200).json(user);
+    })
+    .catch((err) => {
+      console.log(err);
+      return res.status(500).send({ error: err.message });
+    });
+});
+
+router.get("/apps", (req, res) => {
+  App.find({}, "appName webhookURL appType")
+    .then((data) => {
+      if (!data) {
+        return res
+          .status(200)
+          .send({ message: "There are no registered apps" });
+      }
+      return res.status(200).send(data);
+    })
+    .catch((err) => {
+      res.status(500).send({ error: err.message });
+    });
+});
+
+router.get("/", (req, res) => {
+  res.status(200).send("Welcome to Trakadis lab");
 });
 
 //For testing (possible feature in the future)
-router.delete("/users/:id", authorization, (req, res, next) => {
+router.delete("/users/:id", middleware.authorization, (req, res, next) => {
   User.findOneAndDelete({ _id: req.params.id })
     .then((data) => res.json(data))
     .catch(next);
 });
 
-//For testing (possible feature in the future)
+//For testing
 router.get("/users", (req, res, next) => {
   //Return all users, exposing id, username and email
   User.find({}, "username address email")
     .then((data) => res.json(data))
     .catch(next);
-});
-
-router.get("/", (req, res) => {
-  res.status(200).send("Welcome to Trakadis lab");
 });
 
 module.exports = router;
