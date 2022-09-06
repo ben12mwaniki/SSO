@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import AuthService from "../services/service";
-import { useNavigate } from "react-router-dom";
 
 function Registration() {
   const formSchema = Yup.object().shape({
@@ -32,13 +31,10 @@ function Registration() {
   const { register, handleSubmit, formState } = useForm(formOptions);
   const { errors } = formState;
   const [regMsg, setMsg] = useState("");
-  const navigate = useNavigate();
 
   async function onSubmit(data) {
+    setMsg("");
     setMsg(await AuthService.registerUser(data));
-
-    //Navigate to login
-    //navigate("/login");
   }
 
   return (
@@ -88,6 +84,8 @@ function Registration() {
           />
           <div className="invalid-feedback">{errors.confirmPwd?.message}</div>
         </div>
+        <br></br>
+
         <span className="alert alert-primary" role="alert">
           {regMsg}
         </span>
