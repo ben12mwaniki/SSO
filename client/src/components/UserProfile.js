@@ -1,24 +1,25 @@
 import React, { useState } from "react";
 import AuthService from "../services/service";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 function UserProfile(props) {
   const navigate = useNavigate();
-  const { username } = useParams();
+
   const [mssg, setMsg] = useState("");
-  const userType = useLocation().state.userType;
+  const userType = useLocation().state.user.userType;
+  const username = useLocation().state.user.username;
   const setUser = props.setUser;
 
   return (
     <div className="profile">
       <header>
-        <h1>Hi {username}! Welcome to your page</h1>
+        <h1>Hi {useLocation().state.user.username}! Welcome to your page</h1>
         <button
           type="button"
           onClick={async () => {
             var logMsg = await AuthService.logout();
             if (logMsg === "Success!") {
-              setUser(false);
+              setUser(null);
               navigate("/login");
             } else {
               setMsg(logMsg);
@@ -35,9 +36,7 @@ function UserProfile(props) {
           //with no redirect
           // navigate(`/change_pwd`, { state: { username: username } });
           //with redirect
-          navigate(`/change_pwd?redirect=https://www.mcgill.ca/`, {
-            state: { username: username },
-          });
+          navigate(`/change_pwd?redirect=`);
         }}
       >
         Change Password
