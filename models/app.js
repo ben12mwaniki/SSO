@@ -1,5 +1,6 @@
 const mongoose = require("mongoose"),
   Schema = mongoose.Schema;
+mongoose.set('debug', true);
 
 const AppSchema = new Schema(
   {
@@ -14,7 +15,7 @@ const AppSchema = new Schema(
   { timestamps: true }
 );
 
-UserSchema.pre("save", function (next) {
+AppSchema.pre("save", function (next) {
   var app = this;
 
   // encrypt appSecret on app creation/modification of field
