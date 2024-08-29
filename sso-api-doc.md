@@ -1,50 +1,5 @@
-# API Documentation
+# API Documentation for SSO
 
-## HTTP-request-type path-to-endpoint
-
-**Note: include any url or query parameters here**
-
-### Definition:
-
-Explain what this endpoint does.
-
-### Authentication:
-
-Explain whether or not the user needs to be authenticated to access this endpoint + what usertypes are accepted, etc...
-
-### Request Fields:
-
-Show an example of the required fields of the request body (if needed - i.e. POST request).
-
-```
-{
-    <field-name>: <field-value>,
-    ...
-}
-```
-
-### Response:
-
-- **Success**: HTTP 201 Created
-- **Failure**: HTTP 400 Bad Request
-- ...
-
-### Response Fields:
-
-```
-{
-    <field-name>: <field-value>,
-        ...
-    ]
-}
-```
-
-### Notes
-
-- note anything else that needs to be known about this endpoint
-  ...
-
-<br />
 
 ## GET /api/users
 
