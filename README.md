@@ -22,14 +22,20 @@ This is an app based on the MongoDB, Express, React and Node.js (MERN) framework
  _Note: Depending on when you fork this repo, some packages might be outdated and the above installation may not complete. Try to read through the errors and figure out which packages failed and install them individually i.e. `npm install <package>`_
 
 * Creat your `.env` file at root and specify the following variables
+
+<div align="center"> 
+
 |Key|Value|
+|--------|--------|
 |REACT_APP_DB|Database URI|
 |CRYPT_SECRET|string used for signing jwt tokens|
 |PORT|Port for backend server|
 
+</div> 
+
 * Run the application with `npm run dev`. This command starts both the backend and frontend servers. To test the backend alone, you can run `npm start` while at root.
 
-Detailed documentation can be found here.
+Detailed api documentation can be found here.
 
 ## Project status
 All requisite endpoints in the server have been implemented. Current work is on improving the UI.
