@@ -129,7 +129,7 @@ router.post("/login", (req, res) => {
                   id: data._id,
                   registered: data.registered,
                 },
-                process.env.USER_SECRET,
+                process.env.CRYPT_SECRET,
                 { expiresIn: "24h" }
               );
 

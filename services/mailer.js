@@ -4,8 +4,8 @@ var nodemailer = require("nodemailer");
 var transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "hurrivan@gmail.com",
-    pass: "swmyflgjddluxcqn",
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
   },
 });
 
@@ -20,7 +20,10 @@ module.exports.send = function (mail) {
 
   // send email
   transporter.sendMail(mail, function (error, info) {
-    if (error) return console.log(error);
-    console.log("mail sent:", info.response);
+    if (error){
+      console.log("mail not sent:", error);
+    }else{
+      console.log("mail sent:", info.response);
+    }
   });
 };
