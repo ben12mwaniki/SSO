@@ -9,6 +9,8 @@ const routes = require("./routes/api");
 const app = express();
 
 const port = process.env.PORT;
+
+//Test for commit 
 //Connect to the database
 mongoose
   .connect(process.env.REACT_APP_DB, { useNewUrlParser: true })
