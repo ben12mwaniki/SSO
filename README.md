@@ -1,41 +1,89 @@
 # SSO Application
 
 ## Description
-This is a single sign-on application for authenticating users as they access other peripheral apps (PAs). It simulates an authentication/authorization system that could be used in a clinic. The app allows creating users (Doctors, Patients, Groups) and for other PAs to retrieve and update this information. 
 
-## Setup and configuration
-This is an app built using the MongoDB, Express, React and Node.js (MERN) framework. Basically, Javascript is used all across the backend and the frontend. 
+A full-stack Single Sign-On (SSO) application designed to authenticate users across peripheral applications (PAs). The project simulates an authentication and authorization service for a clinical environment, supporting **Doctors, Patients, and Groups**.
+
+The SSO provides user registration, account activation, authentication, password management, profile management, and application integration. Registered PAs can authenticate with the SSO and retrieve user information as required.
+
+## Technology Stack
+
+Built using the **MERN stack**:
+
+* **MongoDB** — User and application data storage
+* **Express.js** — Backend REST API
+* **React** — Frontend
+* **Node.js** — Backend runtime
+* **JWT** — Authentication and application authorization
+* **HTTP-only cookies** — Browser-based user authentication
+
+## Setup and Configuration
 
 ### Prerequisites
+
 * Node.js
+* MongoDB instance
 
-### Getting started
-* Fork the repository
-* Install backend packages and dependencies
+### Getting Started
+
+1. Fork and clone the repository.
+
+2. Install backend dependencies from the project root:
+
+```bash
+npm install
 ```
-    npm install
+
+3. Install frontend dependencies:
+
+```bash
+cd client
+npm install
 ```
-* Move to the client folder with `cd client` and install the frontend dependencies
+
+> Depending on when the repository is cloned, some dependencies may be outdated or incompatible with the current Node.js version. Review any installation errors and install or update the affected packages as necessary.
+
+4. Create a `.env` file in the project root and configure the required environment variables:
+
+| Key            | Description                                                            |
+| -------------- | ---------------------------------------------------------------------- |
+| `REACT_APP_DB` | MongoDB connection URI                                                 |
+| `CRYPT_SECRET` | Secret used to sign JWTs for users who have not completed registration |
+| `USER_SECRET`  | Secret used to sign JWTs for fully registered users                    |
+| `PORT`         | Port used by the backend server                                        |
+
+5. Start the application:
+
+```bash
+npm run dev
 ```
-    npm install
+
+This starts both the backend and frontend development servers.
+
+To run only the backend:
+
+```bash
+npm start
 ```
- _Note: Depending on when you fork this repo, some packages might be outdated and the above installations may not complete. Try to read through the errors and figure out which packages failed and then install them individually i.e. `npm install <package>`_
 
-* Creat your `.env` file at root and specify the following variables
+## API Documentation
 
-<div align="center"> 
+Detailed endpoint documentation, including authentication requirements, request fields, responses, and security considerations, is available in the [SSO API documentation](https://github.com/ben12mwaniki/SSO/blob/main/sso-api-doc.md).
 
-|Key|Value|
-|--------|--------|
-|REACT_APP_DB|Database URI|
-|CRYPT_SECRET|string used for signing jwt tokens|
-|PORT|Port for backend server|
+## Project Status
 
-</div> 
+The core SSO endpoints have been implemented, including:
 
-* Run the application with `npm run dev`. This command starts both the backend and frontend servers. To test the backend alone, you can run `npm start` while at root.
+* User registration and email activation
+* Login and logout
+* JWT-based authentication
+* Password reset and password changes
+* User profile creation and modification
+* User authentication and reauthentication
+* Peripheral application registration
+* Application-level authentication
+* User information retrieval for registered applications
 
-Detailed api documentation can be found [here](https://github.com/ben12mwaniki/SSO/blob/main/sso-api-doc.md).
+Current work is focused on improving the frontend UI.
 
-## Project status
-All requisite endpoints in the server have been implemented. Current work is on improving the UI.
+The API is functional but would benefit from additional security hardening before production use. The API documentation identifies the main areas for improvement, including endpoint authorization, exposed testing endpoints, token handling, and production cookie/security configuration.
